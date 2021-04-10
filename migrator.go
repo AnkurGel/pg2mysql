@@ -118,12 +118,13 @@ func migrateWithIDs(
 	values := make([]interface{}, len(table.Columns))
 	scanArgs := make([]interface{}, len(table.Columns))
 	for i := range table.Columns {
-		columnNamesForSelect[i] = table.Columns[i].Name
+		columnNamesForSelect[i] = "\"" + table.Columns[i].Name + "\""
 		scanArgs[i] = &values[i]
 	}
 
 	// find ids already in dst
-	rows, err := dst.DB().Query(fmt.Sprintf("SELECT id FROM %s", table.Name))
+	rows, err := dst.DB().Query(fmt.Sprintf("SELECT \"id\" FROM %s", table.Name))
+	fmt.Printf("SELECT \"id\" FROM %s\n", table.Name)
 	if err != nil {
 		return fmt.Errorf("failed to select id from rows: %s", err)
 	}
@@ -147,7 +148,7 @@ func migrateWithIDs(
 
 	// select data for ids to migrate from src
 	stmt := fmt.Sprintf(
-		"SELECT %s FROM %s",
+		"SELECT %s FROM \"%s\"",
 		strings.Join(columnNamesForSelect, ","),
 		table.Name,
 	)
@@ -159,7 +160,7 @@ func migrateWithIDs(
 			placeholders[i] = fmt.Sprintf("$%d", i+1)
 		}
 
-		stmt = fmt.Sprintf("%s WHERE id NOT IN (%s)", stmt, strings.Join(placeholders, ","))
+		stmt = fmt.Sprintf("\"%s\" WHERE id NOT IN (%s)", stmt, strings.Join(placeholders, ","))
 		selectArgs = dstIDs
 	}
 
